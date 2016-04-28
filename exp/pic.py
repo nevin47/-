@@ -17,10 +17,11 @@ longsql = "SELECT date, pv_uv, qty_alipay_njhs,item_id FROM item_feature where i
 longsql2 = "SELECT date, brand_id, SUM(qty_alipay_njhs), SUM(collect_uv) FROM item_feature where ((date > '2014-12-25' and date < '2015-3-15'))" \
            " and brand_id in (" \
            "SELECT brand_id FROM (SELECT sum(qty_alipay_njhs) sumpay,brand_id from item_feature group by brand_id order by sumpay DESC limit 2,3) a) group by date,brand_id "
+finalsql = "SELECT item_id,date,qty_alipay FROM item_feature WHERE ((date >= '2014-12-28' and date <= '2015-1-10'))";
 try:
     conn=MySQLdb.connect(host='localhost',user='root',passwd='123',db='Fengcang',port=3306)
     cur=conn.cursor()
-    cur.execute(sqlstring)
+    cur.execute(finalsql)
     results=cur.fetchall()
     cur.close()
     conn.close()
