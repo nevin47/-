@@ -68,19 +68,23 @@ def runfunc(xxx):
     except MySQLdb.Error,e:
          print "Mysql Error %d: %s" % (e.args[0], e.args[1])
 
-    filename = "./new/csvtest"+xxx+".csv"
+    filename = "./new/4_28/csvtest"+xxx+".csv"
     csvfile = file(filename, 'wb')
     writer = csv.writer(csvfile)
 
     for i in results:
         oldV = findValue(results2,i[0])
-        oldV2 = findValue(l3,i[0])
+        #oldV2 = findValue(l3,i[0])
         newV = i[1]
+        sub = oldV - newV
+        pre = preValue(newV,sub)
         item_id = i[0]
         # print "item_id:",i[0],"\toldV:",oldV,"\tnewV:",newV
-        pre = preValuenew(newV,oldV,oldV2)
+        #pre = preValuenew(newV,oldV,oldV2)
         print "item_id:",item_id,"\tpreV:",pre
         writer.writerow([item_id, xxx, pre])
     csvfile.close()
 
-runfunc(4)
+for i in range(6):
+    if i != 0:
+        runfunc(i)

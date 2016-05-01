@@ -69,16 +69,19 @@ except MySQLdb.Error,e:
      print "Mysql Error %d: %s" % (e.args[0], e.args[1])
 
 
-csvfile = file('./new/csvtest.csv', 'wb')
+csvfile = file('./new/4_28/csvtest.csv', 'wb')
 writer = csv.writer(csvfile)
 
 for i in l1:
     oldV = findValue(l2,i[0])
-    oldV2 = findValue(l3,i[0])
+    #oldV2 = findValue(l3,i[0])
     newV = i[1]
+    sub = oldV - newV
+    pre = preValue(newV,sub)
     item_id = i[0]
     # print "item_id:",i[0],"\toldV:",oldV,"\tnewV:",newV
-    pre = preValuenew(newV,oldV,oldV2)
+    #pre = preValuenew(newV,oldV,oldV2)
+    #pre = preValue(newV,oldV)
     print "item_id:",item_id,"\tpreV:",pre
     writer.writerow([item_id, 'all', pre])
 csvfile.close()
