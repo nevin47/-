@@ -20,7 +20,7 @@ def preValue(newV, subV):
     preV = float(newV) - float(subV)/3
     if preV < 0:
         preV = 0
-    return int(preV)
+    return int(preV)*2
 
 def preValuenew(newV, subV, subV2):
     temp = subV2 - subV
@@ -34,8 +34,8 @@ def preValuenew(newV, subV, subV2):
     return int(pre)
 def runfunc(xxx):
     xxx = str(xxx)
-    finalsql = "SELECT item_id,SUM(qty_alipay) FROM item_store_feature WHERE (date >= '2015-12-14' and date <= '2015-12-27') AND store_code = "+xxx+" GROUP BY item_id";
-    finalsql2 = "SELECT item_id,SUM(qty_alipay) FROM item_store_feature WHERE (date >= '2015-11-30' and date <= '2015-12-13') AND store_code = "+xxx+" GROUP BY item_id";
+    finalsql = "SELECT item_id,SUM(qty_alipay) FROM item_store_feature WHERE (date >= '2015-12-21' and date <= '2015-12-27') AND store_code = "+xxx+" GROUP BY item_id";
+    finalsql2 = "SELECT item_id,SUM(qty_alipay) FROM item_store_feature WHERE (date >= '2015-12-14' and date <= '2015-12-20') AND store_code = "+xxx+" GROUP BY item_id";
     finalsql3 = "SELECT item_id,SUM(qty_alipay) FROM item_store_feature WHERE (date >= '2015-11-16' and date <= '2015-11-29') AND store_code = "+xxx+" GROUP BY item_id";
 
     try:
@@ -68,7 +68,7 @@ def runfunc(xxx):
     except MySQLdb.Error,e:
          print "Mysql Error %d: %s" % (e.args[0], e.args[1])
 
-    filename = "./new/4_28/csvtest"+xxx+".csv"
+    filename = "./new/5_2/csvtest"+xxx+".csv"
     csvfile = file(filename, 'wb')
     writer = csv.writer(csvfile)
 
