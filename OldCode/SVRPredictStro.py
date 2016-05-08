@@ -9,7 +9,7 @@ from pylab import *
 import datetime
 import time
 
-def getDataWeekly(moveday,id,stid):
+def getDataWeekly(moveday, id, stid):
     moveday = str(moveday)
     id = str(id)
     sql = "SELECT item_id,SUM(qty_alipay) FROM item_store_feature WHERE " \
