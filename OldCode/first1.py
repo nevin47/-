@@ -17,7 +17,7 @@ def findValue(targetArray, item_id):
     return 0
 
 def preValue(newV, subV):
-    preV = float(newV) - float(subV)/3
+    preV = float(newV) - float(subV)/5
     if preV < 0:
         preV = 0
     return int(preV)*2
@@ -34,9 +34,9 @@ def preValuenew(newV, subV, subV2):
     return int(pre)
 
 
-finalsql = "SELECT item_id,SUM(qty_alipay) FROM item_feature WHERE (date >= '2015-12-21' and date <= '2015-12-27') GROUP BY item_id";
-finalsql2 = "SELECT item_id,SUM(qty_alipay) FROM item_feature WHERE (date >= '2015-12-14' and date <= '2015-12-20') GROUP BY item_id";
-finalsql3 = "SELECT item_id,SUM(qty_alipay) FROM item_feature WHERE (date >= '2015-11-16' and date <= '2015-11-29') GROUP BY item_id";
+finalsql = "SELECT item_id,SUM(qty_alipay_njhs) FROM item_feature WHERE (date >= '2015-12-21' and date <= '2015-12-27') GROUP BY item_id";
+finalsql2 = "SELECT item_id,SUM(qty_alipay_njhs) FROM item_feature WHERE (date >= '2015-12-14' and date <= '2015-12-20') GROUP BY item_id";
+finalsql3 = "SELECT item_id,SUM(qty_alipay_njhs) FROM item_feature WHERE (date >= '2015-11-16' and date <= '2015-11-29') GROUP BY item_id";
 
 try:
     conn=MySQLdb.connect(host='localhost',user='root',passwd='123',db='Fengcang',port=3306)
@@ -69,7 +69,7 @@ except MySQLdb.Error,e:
      print "Mysql Error %d: %s" % (e.args[0], e.args[1])
 
 
-csvfile = file('./new/5_2/csvtest.csv', 'wb')
+csvfile = file('../new/5_10/csvtest.csv', 'wb')
 writer = csv.writer(csvfile)
 
 for i in l1:
