@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown AI 智能编辑器</title>
+
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+
+    <!-- GitHub Markdown CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.1.0/github-markdown.min.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 工具栏 */
+        .toolbar {
+            background: #24292e;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 100;
+        }
+
+        .toolbar-left, .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toolbar h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-right: 20px;
+        }
+
+        .btn {
+            background: #2ea44f;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn:hover {
+            background: #2c974b;
+        }
+
+        .btn-secondary {
+            background: #6e7681;
+        }
+
+        .btn-secondary:hover {
+            background: #57606a;
+        }
+
+        /* 主编辑区 */
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #d0d7de;
+        }
+
+        .preview-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: auto;
+            background: white;
+        }
+
+        .panel-header {
+            background: #f6f8fa;
+            padding: 10px 20px;
+            border-bottom: 1px solid #d0d7de;
+            font-weight: 600;
+            font-size: 14px;
+            color: #24292e;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-size: 14px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+        }
+
+        .preview-content {
+            padding: 20px;
+            flex: 1;
+        }
+
+        /* 状态栏 */
+        .statusbar {
+            background: #f6f8fa;
+            padding: 8px 20px;
+            border-top: 1px solid #d0d7de;
+            font-size: 12px;
+            color: #57606a;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* 配置面板 */
+        .config-panel {
+            position: fixed;
+            right: -400px;
+            top: 0;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .config-panel.open {
+            right: 0;
+        }
+
+        .config-header {
+            background: #24292e;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .config-header h2 {
+            font-size: 16px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .config-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .config-section {
+            margin-bottom: 25px;
+        }
+
+        .config-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #24292e;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #24292e;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', monospace;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #0969da;
+        }
+
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            font-size: 11px;
+            color: #57606a;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        /* 补全弹窗 */
+        .completion-popup {
+            position: fixed;
+            background: white;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+            padding: 15px;
+            max-width: 600px;
+            z-index: 300;
+            display: none;
+        }
+
+        .completion-popup.show {
+            display: block;
+        }
+
+        .completion-header {
+            font-weight: 600;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #d0d7de;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .completion-content {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f6f8fa;
+            border-radius: 4px;
+            font-family: inherit;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .completion-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .completion-actions .btn {
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #2ea44f;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 隐藏的文件输入 */
+        .hidden-input {
+            display: none;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .config-panel {
+                width: 100%;
+                right: -100%;
+            }
+        }
+
+        /* Toast通知 */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #24292e;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 400;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .toast.error {
+            background: #d73a49;
+        }
+
+        .toast.success {
+            background: #2ea44f;
+        }
+
+        /* Markdown样式增强 */
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 工具栏 -->
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <h1>Markdown AI 智能编辑器</h1>
+            <button class="btn" onclick="app.newFile()">
+                <span>📄</span> 新建
+            </button>
+            <button class="btn" onclick="app.openFile()">
+                <span>📂</span> 打开
+            </button>
+            <button class="btn" onclick="app.saveFile()">
+                <span>💾</span> 保存
+            </button>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-secondary" onclick="app.toggleConfig()">
+                <span>⚙️</span> 配置
+            </button>
+        </div>
+    </div>
+
+    <!-- 主编辑区 -->
+    <div class="main-container">
+        <div class="editor-panel">
+            <div class="panel-header">编辑器</div>
+            <textarea id="editor"></textarea>
+        </div>
+        <div class="preview-panel">
+            <div class="panel-header">实时预览</div>
+            <div class="preview-content markdown-body" id="preview"></div>
+        </div>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="statusbar">
+        <div id="status-left">就绪</div>
+        <div id="status-right">行: 1, 列: 1</div>
+    </div>
+
+    <!-- 配置面板 -->
+    <div class="config-panel" id="configPanel">
+        <div class="config-header">
+            <h2>配置设置</h2>
+            <button class="close-btn" onclick="app.toggleConfig()">&times;</button>
+        </div>
+        <div class="config-content">
+            <div class="config-section">
+                <h3>API 配置</h3>
+                <div class="form-group">
+                    <label>API 地址</label>
+                    <input type="text" id="apiUrl" placeholder="http://localhost/v1/chat/completions">
+                    <small>OpenAI 兼容的 API 端点地址</small>
+                </div>
+                <div class="form-group">
+                    <label>API Key</label>
+                    <input type="text" id="apiKey" placeholder="留空或填写您的 API Key">
+                    <small>如果您的 API 不需要认证，可以留空</small>
+                </div>
+                <div class="form-group">
+                    <label>模型名称</label>
+                    <input type="text" id="modelName" placeholder="qwen">
+                    <small>使用的模型名称</small>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>补全粒度</h3>
+                <div class="form-group">
+                    <label>输入粒度（上下文）</label>
+                    <select id="inputGranularity">
+                        <option value="all">光标前全部内容</option>
+                        <option value="paragraph">当前段落</option>
+                        <option value="section">当前章节</option>
+                        <option value="recent" selected>最近500字符</option>
+                    </select>
+                    <small>发送给 AI 的上下文范围</small>
+                </div>
+                <div class="form-group">
+                    <label>补全粒度（生成长度）</label>
+                    <select id="completionGranularity">
+                        <option value="sentence" selected>句子 (10-30字)</option>
+                        <option value="paragraph">段落 (50-150字)</option>
+                        <option value="section">章节 (200-400字)</option>
+                    </select>
+                    <small>AI 生成内容的长度</small>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>模型参数</h3>
+                <div class="form-group">
+                    <label>Temperature (0-2)</label>
+                    <input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7">
+                    <small>控制输出的随机性，越高越随机</small>
+                </div>
+                <div class="form-group">
+                    <label>句子 Max Tokens</label>
+                    <input type="number" id="maxTokensSentence" min="10" max="500" value="50">
+                </div>
+                <div class="form-group">
+                    <label>段落 Max Tokens</label>
+                    <input type="number" id="maxTokensParagraph" min="50" max="1000" value="200">
+                </div>
+                <div class="form-group">
+                    <label>章节 Max Tokens</label>
+                    <input type="number" id="maxTokensSection" min="200" max="2000" value="500">
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>提示词配置</h3>
+                <div class="form-group">
+                    <label>系统提示词</label>
+                    <textarea id="systemPrompt">你是一个专业的技术文档写作助手，专门帮助用户补全Markdown文档内容。
+
+重要规则：
+1. 严格遵守补全粒度要求
+2. 保持与上下文的连贯性和一致性
+3. 使用适当的Markdown格式
+4. 技术内容要准确、专业
+5. 不要重复已有内容，直接从断点处继续
+6. 返回纯文本内容，不要使用JSON格式</textarea>
+                </div>
+                <div class="form-group">
+                    <label>补全提示词模板</label>
+                    <textarea id="completionPrompt">请根据以下上下文，补全内容。
+
+上下文：
+{CONTEXT}
+
+补全粒度：{GRANULARITY}
+长度要求：{LENGTH_GUIDE}
+
+请直接输出补全的内容，不要包含任何解释或格式标记。</textarea>
+                    <small>可用占位符: {CONTEXT}, {GRANULARITY}, {LENGTH_GUIDE}</small>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <h3>其他选项</h3>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="debugMode">
+                    <label for="debugMode">启用调试模式</label>
+                </div>
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="lengthControl" checked>
+                    <label for="lengthControl">启用长度控制</label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <button class="btn" onclick="app.saveConfig()" style="width: 100%;">
+                    保存配置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 补全弹窗 -->
+    <div class="completion-popup" id="completionPopup">
+        <div class="completion-header">
+            <span>AI 补全建议</span>
+            <span id="completionGranularityLabel"></span>
+        </div>
+        <div class="completion-content" id="completionContent"></div>
+        <div class="completion-actions">
+            <button class="btn btn-secondary" onclick="app.rejectCompletion()">
+                拒绝 (Esc)
+            </button>
+            <button class="btn" onclick="app.acceptCompletion()">
+                接受 (Tab)
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast通知 -->
+    <div class="toast" id="toast"></div>
+
+    <!-- 隐藏的文件输入 -->
+    <input type="file" id="fileInput" class="hidden-input" accept=".md,.markdown">
+
+    <!-- CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/markdown/markdown.min.js"></script>
+
+    <!-- Marked.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
+
+    <script>
+        // 主应用对象
+        const app = {
+            editor: null,
+            currentFile: null,
+            currentCompletion: null,
+            config: {
+                apiUrl: 'http://localhost/v1/chat/completions',
+                apiKey: '',
+                modelName: 'qwen',
+                inputGranularity: 'recent',
+                completionGranularity: 'sentence',
+                temperature: 0.7,
+                maxTokens: {
+                    sentence: 50,
+                    paragraph: 200,
+                    section: 500
+                },
+                systemPrompt: '',
+                completionPrompt: '',
+                debugMode: false,
+                lengthControl: true
+            },
+
+            // 初始化
+            init() {
+                this.initEditor();
+                this.loadConfig();
+                this.setupEventListeners();
+                this.updatePreview();
+                this.showToast('欢迎使用 Markdown AI 智能编辑器！', 'success');
+            },
+
+            // 初始化编辑器
+            initEditor() {
+                this.editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+                    mode: 'markdown',
+                    lineNumbers: true,
+                    lineWrapping: true,
+                    theme: 'default',
+                    autofocus: true,
+                    extraKeys: {
+                        'Ctrl-S': () => this.saveFile(),
+                        'Ctrl-O': () => this.openFile(),
+                        'Ctrl-N': () => this.newFile(),
+                        'Ctrl-E': () => this.triggerCompletion(),
+                        'Tab': (cm) => {
+                            if (document.getElementById('completionPopup').classList.contains('show')) {
+                                this.acceptCompletion();
+                            } else {
+                                cm.execCommand('defaultTab');
+                            }
+                        },
+                        'Esc': (cm) => {
+                            if (document.getElementById('completionPopup').classList.contains('show')) {
+                                this.rejectCompletion();
+                            }
+                        }
+                    }
+                });
+
+                // 监听内容变化
+                this.editor.on('change', () => {
+                    this.updatePreview();
+                });
+
+                // 监听光标位置变化
+                this.editor.on('cursorActivity', () => {
+                    this.updateCursorPosition();
+                });
+            },
+
+            // 设置事件监听
+            setupEventListeners() {
+                // 文件输入
+                document.getElementById('fileInput').addEventListener('change', (e) => {
+                    this.handleFileSelect(e);
+                });
+
+                // 防止拖放
+                document.addEventListener('dragover', (e) => e.preventDefault());
+                document.addEventListener('drop', (e) => e.preventDefault());
+            },
+
+            // 更新预览
+            updatePreview: (() => {
+                let timeout;
+                return function() {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => {
+                        const content = this.editor.getValue();
+                        const preview = document.getElementById('preview');
+                        preview.innerHTML = marked.parse(content || '# 开始编写...');
+                    }, 300);
+                };
+            })(),
+
+            // 更新光标位置
+            updateCursorPosition() {
+                const cursor = this.editor.getCursor();
+                document.getElementById('status-right').textContent =
+                    `行: ${cursor.line + 1}, 列: ${cursor.ch + 1}`;
+            },
+
+            // 新建文件
+            newFile() {
+                if (this.editor.getValue() && !confirm('当前文档未保存，确定要新建吗？')) {
+                    return;
+                }
+                this.editor.setValue('');
+                this.currentFile = null;
+                this.showToast('新建文档成功', 'success');
+            },
+
+            // 打开文件
+            openFile() {
+                document.getElementById('fileInput').click();
+            },
+
+            // 处理文件选择
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.editor.setValue(e.target.result);
+                    this.currentFile = file.name;
+                    this.showToast(`已打开: ${file.name}`, 'success');
+                };
+                reader.readAsText(file);
+            },
+
+            // 保存文件
+            saveFile() {
+                const content = this.editor.getValue();
+                const blob = new Blob([content], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = this.currentFile || 'document.md';
+                a.click();
+                URL.revokeObjectURL(url);
+                this.showToast('文件已保存', 'success');
+            },
+
+            // 切换配置面板
+            toggleConfig() {
+                const panel = document.getElementById('configPanel');
+                panel.classList.toggle('open');
+            },
+
+            // 加载配置
+            loadConfig() {
+                const savedConfig = localStorage.getItem('mdAiEditorConfig');
+                if (savedConfig) {
+                    try {
+                        const config = JSON.parse(savedConfig);
+                        this.config = { ...this.config, ...config };
+                    } catch (e) {
+                        console.error('Failed to load config:', e);
+                    }
+                }
+
+                // 填充表单
+                document.getElementById('apiUrl').value = this.config.apiUrl;
+                document.getElementById('apiKey').value = this.config.apiKey;
+                document.getElementById('modelName').value = this.config.modelName;
+                document.getElementById('inputGranularity').value = this.config.inputGranularity;
+                document.getElementById('completionGranularity').value = this.config.completionGranularity;
+                document.getElementById('temperature').value = this.config.temperature;
+                document.getElementById('maxTokensSentence').value = this.config.maxTokens.sentence;
+                document.getElementById('maxTokensParagraph').value = this.config.maxTokens.paragraph;
+                document.getElementById('maxTokensSection').value = this.config.maxTokens.section;
+
+                const defaultSystemPrompt = document.getElementById('systemPrompt').value;
+                const defaultCompletionPrompt = document.getElementById('completionPrompt').value;
+
+                document.getElementById('systemPrompt').value = this.config.systemPrompt || defaultSystemPrompt;
+                document.getElementById('completionPrompt').value = this.config.completionPrompt || defaultCompletionPrompt;
+                document.getElementById('debugMode').checked = this.config.debugMode;
+                document.getElementById('lengthControl').checked = this.config.lengthControl;
+            },
+
+            // 保存配置
+            saveConfig() {
+                this.config.apiUrl = document.getElementById('apiUrl').value;
+                this.config.apiKey = document.getElementById('apiKey').value;
+                this.config.modelName = document.getElementById('modelName').value;
+                this.config.inputGranularity = document.getElementById('inputGranularity').value;
+                this.config.completionGranularity = document.getElementById('completionGranularity').value;
+                this.config.temperature = parseFloat(document.getElementById('temperature').value);
+                this.config.maxTokens.sentence = parseInt(document.getElementById('maxTokensSentence').value);
+                this.config.maxTokens.paragraph = parseInt(document.getElementById('maxTokensParagraph').value);
+                this.config.maxTokens.section = parseInt(document.getElementById('maxTokensSection').value);
+                this.config.systemPrompt = document.getElementById('systemPrompt').value;
+                this.config.completionPrompt = document.getElementById('completionPrompt').value;
+                this.config.debugMode = document.getElementById('debugMode').checked;
+                this.config.lengthControl = document.getElementById('lengthControl').checked;
+
+                localStorage.setItem('mdAiEditorConfig', JSON.stringify(this.config));
+                this.showToast('配置已保存', 'success');
+            },
+
+            // 触发AI补全
+            async triggerCompletion() {
+                // 获取上下文
+                const context = this.getContext();
+                if (!context.trim()) {
+                    this.showToast('请先输入一些内容', 'error');
+                    return;
+                }
+
+                this.setStatus('正在生成补全...');
+
+                try {
+                    const completion = await this.callLLM(context);
+                    if (completion) {
+                        this.showCompletionPopup(completion);
+                    }
+                } catch (error) {
+                    this.showToast('补全失败: ' + error.message, 'error');
+                    console.error('Completion error:', error);
+                } finally {
+                    this.setStatus('就绪');
+                }
+            },
+
+            // 获取上下文
+            getContext() {
+                const cursor = this.editor.getCursor();
+                const content = this.editor.getValue();
+                const beforeCursor = this.editor.getRange({line: 0, ch: 0}, cursor);
+
+                switch (this.config.inputGranularity) {
+                    case 'all':
+                        return beforeCursor;
+
+                    case 'paragraph': {
+                        const lines = beforeCursor.split('\n');
+                        let paragraph = [];
+                        for (let i = lines.length - 1; i >= 0; i--) {
+                            if (lines[i].trim() === '' && paragraph.length > 0) break;
+                            paragraph.unshift(lines[i]);
+                        }
+                        return paragraph.join('\n');
+                    }
+
+                    case 'section': {
+                        const lines = beforeCursor.split('\n');
+                        let section = [];
+                        for (let i = lines.length - 1; i >= 0; i--) {
+                            section.unshift(lines[i]);
+                            if (lines[i].match(/^#+\s/)) break;
+                        }
+                        return section.join('\n');
+                    }
+
+                    case 'recent':
+                    default:
+                        return beforeCursor.slice(-500);
+                }
+            },
+
+            // 调用LLM API
+            async callLLM(context) {
+                const granularityMap = {
+                    sentence: { label: '句子', guide: '补全一个完整的句子（10-30字），以句号、问号或感叹号结束' },
+                    paragraph: { label: '段落', guide: '补全一个完整段落（50-150字），包含2-4个句子' },
+                    section: { label: '章节', guide: '补全一个小节内容（200-400字），可包含多个段落' }
+                };
+
+                const granularity = granularityMap[this.config.completionGranularity];
+                const maxTokens = this.config.maxTokens[this.config.completionGranularity];
+
+                // 构建提示词
+                const userPrompt = this.config.completionPrompt
+                    .replace('{CONTEXT}', context)
+                    .replace('{GRANULARITY}', granularity.label)
+                    .replace('{LENGTH_GUIDE}', granularity.guide);
+
+                const requestBody = {
+                    model: this.config.modelName,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: this.config.systemPrompt
+                        },
+                        {
+                            role: 'user',
+                            content: userPrompt
+                        }
+                    ],
+                    temperature: this.config.temperature,
+                    max_tokens: maxTokens
+                };
+
+                if (this.config.debugMode) {
+                    console.log('=== API Request ===');
+                    console.log('URL:', this.config.apiUrl);
+                    console.log('Body:', JSON.stringify(requestBody, null, 2));
+                    console.log('Context:', context);
+                    console.log('Granularity:', granularity.label);
+                    console.log('Max Tokens:', maxTokens);
+                }
+
+                const headers = {
+                    'Content-Type': 'application/json'
+                };
+
+                if (this.config.apiKey) {
+                    headers['Authorization'] = `Bearer ${this.config.apiKey}`;
+                }
+
+                const response = await fetch(this.config.apiUrl, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`API错误 (${response.status}): ${errorText}`);
+                }
+
+                const data = await response.json();
+
+                if (this.config.debugMode) {
+                    console.log('=== API Response ===');
+                    console.log('Raw Response:', JSON.stringify(data, null, 2));
+                }
+
+                // 提取内容
+                let completion = this.extractContent(data);
+
+                if (this.config.debugMode) {
+                    console.log('Extracted Content:', completion);
+                }
+
+                // 后处理
+                if (this.config.lengthControl) {
+                    completion = this.postProcess(completion);
+                    if (this.config.debugMode) {
+                        console.log('Post-processed Content:', completion);
+                    }
+                }
+
+                return completion;
+            },
+
+            // 提取内容（鲁棒的JSON解析）
+            extractContent(data) {
+                try {
+                    // 标准OpenAI响应格式
+                    if (data.choices && data.choices[0] && data.choices[0].message) {
+                        let content = data.choices[0].message.content;
+
+                        // 清理可能的JSON格式标记
+                        content = this.cleanJsonFormatting(content);
+
+                        return content;
+                    }
+
+                    // 尝试其他可能的格式
+                    if (data.content) {
+                        return this.cleanJsonFormatting(data.content);
+                    }
+
+                    if (data.text) {
+                        return this.cleanJsonFormatting(data.text);
+                    }
+
+                    // 如果整个响应就是文本
+                    if (typeof data === 'string') {
+                        return this.cleanJsonFormatting(data);
+                    }
+
+                    throw new Error('无法从响应中提取内容');
+                } catch (error) {
+                    console.error('Content extraction error:', error);
+                    throw new Error('解析响应失败: ' + error.message);
+                }
+            },
+
+            // 清理JSON格式标记
+            cleanJsonFormatting(text) {
+                if (!text) return '';
+
+                // 移除markdown代码块标记
+                text = text.replace(/```json\s*/g, '');
+                text = text.replace(/```\s*/g, '');
+
+                // 尝试解析JSON（如果LLM返回了JSON格式）
+                try {
+                    const parsed = JSON.parse(text);
+                    if (parsed.content) return parsed.content;
+                    if (parsed.text) return parsed.text;
+                    if (parsed.completion) return parsed.completion;
+                    if (typeof parsed === 'string') return parsed;
+                } catch (e) {
+                    // 不是JSON，直接使用原文本
+                }
+
+                // 处理转义字符
+                text = text.replace(/\\n/g, '\n');
+                text = text.replace(/\\"/g, '"');
+                text = text.replace(/\\\\/g, '\\');
+
+                return text.trim();
+            },
+
+            // 后处理（长度控制）
+            postProcess(text) {
+                if (!text) return '';
+
+                const granularity = this.config.completionGranularity;
+
+                switch (granularity) {
+                    case 'sentence':
+                        return this.processSentence(text);
+
+                    case 'paragraph':
+                        return this.processParagraph(text);
+
+                    case 'section':
+                        return this.processSection(text);
+
+                    default:
+                        return text;
+                }
+            },
+
+            // 处理句子粒度
+            processSentence(text) {
+                // 查找第一个句子结束标记
+                const sentenceEnd = /[。！？.!?]/;
+                const match = text.match(sentenceEnd);
+
+                if (match) {
+                    const endIndex = match.index + 1;
+                    return text.substring(0, endIndex);
+                }
+
+                // 如果没有句号且长度合适，直接返回
+                if (text.length <= 30) {
+                    return text;
+                }
+
+                // 在逗号、分号等位置智能断句
+                const breakPoints = /[，,、；;]/g;
+                const matches = [...text.matchAll(breakPoints)];
+
+                if (matches.length > 0) {
+                    const firstBreak = matches[0].index + 1;
+                    return text.substring(0, firstBreak) + '。';
+                }
+
+                // 截取到30字并补充句号
+                return text.substring(0, 30) + '。';
+            },
+
+            // 处理段落粒度
+            processParagraph(text) {
+                // 限制在第一个段落（双换行）
+                const paragraphEnd = text.indexOf('\n\n');
+                if (paragraphEnd !== -1) {
+                    text = text.substring(0, paragraphEnd);
+                }
+
+                // 如果超过150字，在句子边界截断
+                if (text.length > 150) {
+                    const sentenceEnd = /[。！？.!?]/g;
+                    const matches = [...text.substring(0, 150).matchAll(sentenceEnd)];
+
+                    if (matches.length > 0) {
+                        const lastSentence = matches[matches.length - 1];
+                        return text.substring(0, lastSentence.index + 1);
+                    }
+
+                    return text.substring(0, 150);
+                }
+
+                return text;
+            },
+
+            // 处理章节粒度
+            processSection(text) {
+                // 限制在400字左右
+                if (text.length <= 400) {
+                    return text;
+                }
+
+                // 优先在段落边界截断
+                const paragraphs = text.split('\n\n');
+                let result = '';
+
+                for (const para of paragraphs) {
+                    if ((result + para).length > 400) {
+                        break;
+                    }
+                    result += (result ? '\n\n' : '') + para;
+                }
+
+                if (result) return result;
+
+                // 否则在句子边界截断
+                const sentenceEnd = /[。！？.!?]/g;
+                const matches = [...text.substring(0, 400).matchAll(sentenceEnd)];
+
+                if (matches.length > 0) {
+                    const lastSentence = matches[matches.length - 1];
+                    return text.substring(0, lastSentence.index + 1);
+                }
+
+                return text.substring(0, 400);
+            },
+
+            // 显示补全弹窗
+            showCompletionPopup(completion) {
+                this.currentCompletion = completion;
+
+                const popup = document.getElementById('completionPopup');
+                const content = document.getElementById('completionContent');
+                const label = document.getElementById('completionGranularityLabel');
+
+                const granularityMap = {
+                    sentence: '句子',
+                    paragraph: '段落',
+                    section: '章节'
+                };
+
+                label.textContent = granularityMap[this.config.completionGranularity];
+                content.textContent = completion;
+
+                // 定位弹窗
+                const cursor = this.editor.getCursor();
+                const coords = this.editor.cursorCoords(cursor, 'page');
+
+                popup.style.left = coords.left + 'px';
+                popup.style.top = (coords.bottom + 10) + 'px';
+
+                popup.classList.add('show');
+            },
+
+            // 接受补全
+            acceptCompletion() {
+                if (!this.currentCompletion) return;
+
+                const cursor = this.editor.getCursor();
+                this.editor.replaceRange(this.currentCompletion, cursor);
+
+                this.hideCompletionPopup();
+                this.showToast('已接受补全', 'success');
+            },
+
+            // 拒绝补全
+            rejectCompletion() {
+                this.hideCompletionPopup();
+                this.showToast('已拒绝补全', 'success');
+            },
+
+            // 隐藏补全弹窗
+            hideCompletionPopup() {
+                document.getElementById('completionPopup').classList.remove('show');
+                this.currentCompletion = null;
+            },
+
+            // 设置状态
+            setStatus(message) {
+                document.getElementById('status-left').textContent = message;
+            },
+
+            // 显示Toast通知
+            showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = 'toast show ' + type;
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+        };
+
+        // 页面加载完成后初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+
+        // 配置marked
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: true,
+            mangle: false
+        });
+    </script>
+</body>
+</html>
